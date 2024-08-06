@@ -1,0 +1,4 @@
+keras==2.13.1
+numpy==1.23.5
+tensorflow==2.13.1
+tensorflow_macos==2.13.1

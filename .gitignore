@@ -1,0 +1,6 @@
+data
+logs
+docs
+references
+*/__pycache__
+*/*/__pycache__
