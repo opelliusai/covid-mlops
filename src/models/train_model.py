@@ -18,9 +18,14 @@ from tensorflow.keras.callbacks import EarlyStopping,CSVLogger,LearningRateSched
 from src.config.log_config import logger
 from src.config.run_config import init_paths,infolog
 
+## Import des modules internes
+from src.models import build_model
+from src.datasets import image_preprocessing
+from src.utils import utils_data
 ### FUNCTIONS
 
 def train_model(model, ml_hp, X, y, full_run_folder, model_training_history_csv):
+    logger.debug(f"train_model(model={model}, ml_hp={ml_hp}, X, y={y}, full_run_folder={full_run_folder}, model_training_history_csv={model_training_history_csv})")
     """
     Trains the model using provided data, MLFlow hyperparameters, and run ID for file naming (CSVLogger).
     
@@ -46,7 +51,10 @@ def train_model(model, ml_hp, X, y, full_run_folder, model_training_history_csv)
         X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=1234)
         if len(X_train) == 0 or len(X_val) == 0:
             raise ValueError("Data splitting resulted in empty training or validation sets.")
-
+        X_train = np.array(X_train)
+        y_train = np.array(y_train)
+        X_val = np.array(X_val)
+        y_val = np.array(y_val)
         logger.debug("Data Split Info")
         logger.debug(f"Size X {len(X)}")
         logger.debug(f"Size y {len(y)}")
@@ -72,6 +80,14 @@ def train_model(model, ml_hp, X, y, full_run_folder, model_training_history_csv)
 
         # Timing model training
         start_time = time.time()
+        logger.debug(f"Type X {type(X)} / Len X {len(X)}")
+        logger.debug(f"Type X_train {type(X_train)} / Len X_train {len(X_train)}")
+        logger.debug(f"Type X_val {type(X_val)} / Len X_val {len(X_val)}")
+        
+        logger.debug(f"Type y {type(y)} / Len y {len(y)}")
+        logger.debug(f"Type y_train {type(y_train)} / Len y_train {len(y_train)}")
+        logger.debug(f"Type y_val {type(y_val)} / Len y_val {len(y_val)}")
+        
         history = model.fit(X_train, y_train, epochs=max_epochs, validation_data=(X_val, y_val), callbacks=[early_stopping, lr_scheduler, csv_logger])
         end_time = time.time()
         
@@ -96,3 +112,33 @@ def train_model(model, ml_hp, X, y, full_run_folder, model_training_history_csv)
     except ValueError as e:
         logger.error(f"ValueError: {e}")
         raise
+
+def main():
+    ml_hp={}
+    ml_hp['max_epochs']=22
+    ml_hp['num_trials']=5
+    ## Paramètres additionels pour l'entrainement
+    ml_hp["img_size"]=224
+    ml_hp["img_dim"]=3
+    dataset_path = os.path.join(init_paths["main_path"],init_paths["processed_datasets_folder"],"COVID-19_MC_1.4") # ./data/raw/datasets
+    full_run_folder= os.path.join(init_paths["main_path"],init_paths["run_folder"]) # ./data/processed/mflow
+    data=image_preprocessing.preprocess_data(dataset_path,224,3)
+    X, y = map(list, zip(*data))
+    for i in y:
+        logger.debug(f"Label {i}")
+    # récupérer une liste unique des labels
+    unique_labels=list(set(y))
+    logger.debug(f"Unique labels {unique_labels}")
+    # Créer un dictionnaire pour mapper les labels à des entiers
+    labels_dic=utils_data.generate_numeric_correspondance(unique_labels)
+    logger.debug(f"Labels dic {labels_dic}")
+    labels_num=utils_data.label_to_numeric(y,labels_dic)
+    logger.debug(f"Labels num {labels_num}")
+    model=build_model.main()
+    model_training_history_csv = "Covid19_3C_EffnetB0_model_history_run_id.csv"
+    final_model, metrics, history = train_model(model, ml_hp, X, labels_num, full_run_folder, model_training_history_csv)
+    logger.debug(f"metrics {metrics}")
+    logger.debug(f"history {history}")
+
+if __name__ == "__main__":
+    main()

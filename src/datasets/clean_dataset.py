@@ -492,6 +492,7 @@ def util_convert_size(size_bytes):
    return "%s %s" % (s, size_name[i])
 
 if __name__ == "__main__":
+    '''
     version="1.0"
     path_to_data=os.path.join(init_paths["main_path"],init_paths["raw_datasets_folder"],"covid19-db","COVID-19_Radiography_Dataset")
     dataset_output=os.path.join(init_paths["main_path"],init_paths["processed_datasets_folder"],f"COVID-19_MC_{version}")
@@ -509,3 +510,8 @@ if __name__ == "__main__":
     path_to_data=os.path.join(init_paths["main_path"],init_paths["raw_datasets_folder"],"covid19-db","COVID-19_Radiography_Dataset")
     dataset_output=os.path.join(init_paths["main_path"],init_paths["processed_datasets_folder"],f"COVID-19_MC_{version}")
     clean_data_3classes_select_image(path_to_data,dataset_output,version,20)
+    '''
+    version="1.4"
+    path_to_data=os.path.join(init_paths["main_path"],init_paths["raw_datasets_folder"],"covid19-db","COVID-19_Radiography_Dataset")
+    dataset_output=os.path.join(init_paths["main_path"],init_paths["processed_datasets_folder"],f"COVID-19_MC_{version}")
+    clean_data_3classes_select_image(path_to_data,dataset_output,version,1346)

@@ -16,6 +16,9 @@ from tensorflow.keras.optimizers import Adam,SGD # Optimizers
 from tensorflow.keras.losses import BinaryCrossentropy # Loss function
 from tensorflow.keras.regularizers import l2 # Regularizers 
 from tensorflow.keras.callbacks import EarlyStopping,CSVLogger,LearningRateScheduler# Callbacks
+## Import keras tuner
+from kerastuner.tuners import RandomSearch
+
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
@@ -24,6 +27,106 @@ import time
 ### Import des fichiers de configuration et des informations sur les logs
 from src.config.run_config import init_paths,infolog
 from src.config.log_config import logger
+from src.utils import utils_data
+### Import de modules internes: ici preprocessing
+from src.datasets import image_preprocessing
+
+######
+## Recherche des hyperparamètres - Keras Tuning Random Search
+###### 
+def tuner_randomsearch(ml_hp, full_run_folder, full_kt_folder, keras_tuning_history_filename, X, y,num_classes):
+    """
+    Performs hyperparameter tuning using RandomSearch with specified machine learning hyperparameters, 
+    logging the process, and utilizing callbacks like EarlyStopping and LearningRateScheduler.
+
+    uses the local build_model function.
+    :param ml_hp: Dictionary containing machine learning hyperparameters including 'max_epochs', 
+                  'num_trials'
+    :param full_run_folder: The directory where training artifacts should be stored.
+    :param full_kt_folder: The directory for Keras Tuner artifacts.
+    :param keras_tuning_history_filename 
+    :param X: Features dataset, expected to be in a format suitable for model training (e.g., numpy array).
+    :param y: Labels dataset, expected to be in a format suitable for model training (e.g., numpy array).
+    :param num_classes: Number of classes is dynamic therefore it is provided after the subfolders processing
+    
+    Tuning training logs are stored in the main_model_logs folder with the naming pattern: rs_tuning_training_log_{archi}_{run_id}.csv using ';' separator
+    :return: The best model found during the RandomSearch tuning process.
+    
+    :raises KeyError: If required keys are missing in the `ml_hp` dictionary.
+    :raises FileNotFoundError: If the specified directory does not exist.
+    :raises Exception: For other exceptions not explicitly caught related to model building and tuning.
+    """
+    try:
+        logger.debug("---------tuner_randomsearch------------")
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=1234)
+
+        # Logging split information
+        logger.debug(f"Sizes X: {len(X)}, y: {len(y)}, X_train: {len(X_train)}, y_train: {len(y_train)}, X_val: {len(X_val)}, y_val: {len(y_val)}")
+        #logger.debug(f"Shapes X: {X.shape}, y: {y.shape}, X_train: {X_train.shape}, y_train: {y_train.shape}, X_val: {X_val.shape}, y_val: {y_val.shape}")
+
+        max_epochs = ml_hp['max_epochs']
+        num_trials = ml_hp['num_trials']
+                # Callbacks configuration
+        early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1, mode='auto')
+        
+        logger.debug(f" KT search history file name  {keras_tuning_history_filename}")
+        full_csv_logger_path=os.path.join(full_run_folder,keras_tuning_history_filename)
+        csv_logger = CSVLogger(full_csv_logger_path, append=True, separator=';')
+        logger.debug(f" KT search history file name stored in  {full_csv_logger_path}")
+        
+        # Learning rate adjustment
+        def scheduler(epoch, lr):
+            if epoch < 10:
+                return lr
+            else:
+                return lr * np.exp(-0.1)
+        lr_scheduler = LearningRateScheduler(scheduler, verbose=1)
+        
+        # Keras Tuner configuration
+        tuner = RandomSearch(
+            hypermodel=lambda hp: build_model_efficientnetb0(hp=hp, ml_hp=ml_hp,num_classes=num_classes),
+            objective='val_accuracy',
+            max_trials=num_trials,
+            directory=full_kt_folder,
+            project_name="trials"
+        )
+        
+        # Tuning execution
+        start_time = time.time()
+        X_train = np.array(X_train)
+        y_train = np.array(y_train)
+        X_val = np.array(X_val)
+        y_val = np.array(y_val)
+        logger.debug("Data Split Info")
+        logger.debug(f"Size X {len(X)}")
+        logger.debug(f"Size y {len(y)}")
+        logger.debug(f"Train X size {len(X_train)}")
+        logger.debug(f"Train y size {len(y_train)}")
+        logger.debug(f"Validation X size {len(X_val)}")
+        logger.debug(f"Validation y size {len(y_val)}")
+        tuner.search(X_train, y_train, validation_data=(X_val, y_val), epochs=max_epochs, callbacks=[early_stopping, lr_scheduler, csv_logger])
+        end_time = time.time()
+        tuning_time = round(end_time - start_time, 2) / 60
+        logger.debug(f"Keras Tuning time {tuning_time} min")
+        
+        # Best model retrieval
+        best_hp = tuner.get_best_hyperparameters()[0]
+        best_model = tuner.hypermodel.build(best_hp)
+        
+        logger.debug(f"Best Hyperparameters {best_hp}")
+        return best_model
+
+    except KeyError as e:
+        logger.error(f"Missing key in ml_hp: {e}")
+        raise KeyError(f"Missing key in ml_hp: {e}") from None
+    except FileNotFoundError as e:
+        logger.error(f"Directory not found: {e}")
+        raise FileNotFoundError(f"Directory not found: {e}") from None
+    except Exception as e:
+        logger.error(f"An error occurred during tuning: {e}")
+        raise Exception(f"An error occurred during tuning: {e}") from None
+
+
 
 ######
 ## Model : EfficientNetB0
@@ -40,7 +143,7 @@ def build_model_efficientnetb0(hp, ml_hp,num_classes):
 
     :param hp: HyperParameters object from Keras Tuner for model hyperparameter optimization.
     :param ml_hp: MLFlow HyperParameters object containing configuration details.
-    :param actual_num_classes: Number of classes is dynamic therefore it is provided after the subfolders processing
+    :param num_classes: Number of classes is dynamic therefore it is provided after the subfolders processing
     
     :return: A compiled Keras model optimized with hyperparameters.
 
@@ -117,3 +220,35 @@ def build_model_efficientnetb0(hp, ml_hp,num_classes):
     except ValueError as e:
         logger.error(f"ValueError: {e}")
         raise ValueError(e) from None
+    
+
+def main():
+    logger.debug("Préparation des paramètres")
+    ml_hp={}
+    ml_hp['max_epochs']=22
+    ml_hp['num_trials']=5
+    ml_hp["img_size"]=224
+    ml_hp["img_dim"]=3
+    full_run_folder= os.path.join(init_paths["main_path"],init_paths["run_folder"]) # ./data/processed/mflow
+    full_kt_folder= os.path.join(init_paths["main_path"],init_paths["keras_tuner_folder"]) # ./data/processed/keras_tuner
+    keras_tuning_history_filename="effnetb0_tuning_history_run123.csv"
+    dataset_path = os.path.join(init_paths["main_path"],init_paths["processed_datasets_folder"],"COVID-19_MC_1.4") # ./data/raw/datasets
+    logger.debug("main - dataset_path{dataset_path}")
+    data=image_preprocessing.preprocess_data(dataset_path,224,3)
+    X, y = map(list, zip(*data))
+    for i in y:
+        logger.debug(f"Label {i}")
+    # récupérer une liste unique des labels
+    unique_labels=list(set(y))
+    logger.debug(f"Unique labels {unique_labels}")
+    # Créer un dictionnaire pour mapper les labels à des entiers
+    labels_dic=utils_data.generate_numeric_correspondance(unique_labels)
+    logger.debug(f"Labels dic {labels_dic}")
+    labels_num=utils_data.label_to_numeric(y,labels_dic)
+    logger.debug(f"Labels num {labels_num}")
+    num_classes=3
+
+    model= tuner_randomsearch(ml_hp, full_run_folder, full_kt_folder, keras_tuning_history_filename, X, labels_num,num_classes)
+    return model
+if __name__ == "__main__":
+    main()

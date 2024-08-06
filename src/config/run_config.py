@@ -24,6 +24,8 @@ init_paths = {
     "archive_folder":"data/archives",
     "models_path": "data/models",
     "temp_datasets_folder":"data/raw/datasets_temp",
+    "run_folder":"data/processed/mflow_runs",
+    "keras_tuner_folder":"data/processed/keras_tuner",
     "raw_datasets_folder": "data/raw/datasets",
     "processed_datasets_folder": "data/processed/datasets", 
     "test_images":"data/raw/test_images", 
