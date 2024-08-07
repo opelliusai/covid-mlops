@@ -225,7 +225,7 @@ def build_model_efficientnetb0(hp, ml_hp,num_classes):
 def main():
     logger.debug("Préparation des paramètres")
     ml_hp={}
-    ml_hp['max_epochs']=22
+    ml_hp['max_epochs']=18
     ml_hp['num_trials']=5
     ml_hp["img_size"]=224
     ml_hp["img_dim"]=3

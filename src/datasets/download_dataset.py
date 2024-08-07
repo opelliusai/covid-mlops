@@ -11,7 +11,7 @@ Appel de l'API Kaggle
 import os
 
 # import information logger et fichier de configuration
-from src.config.run_config import init_paths,dataset_info
+from src.config.run_config import init_paths,dataset_info,eval_dataset_info
 from src.config.log_config import logger
 
 # import kaggle
@@ -63,7 +63,7 @@ def get_dataset_kaggle_api(url,destination):
 ## Fonction principale
 def main():
     # URL avec appel à kaggleAPI
-    url = dataset_info["dataset_url"] 
+    url = eval_dataset_info["eval_dataset_url"] 
     destination = os.path.join(init_paths["main_path"],init_paths["raw_datasets_folder"]) # ./data/raw/datasets
     
     get_dataset_kaggle_api(url, destination)

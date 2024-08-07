@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import shutil
-
+import csv
 # metrics
 from tensorflow.keras.losses import CategoricalCrossentropy,SparseCategoricalCrossentropy,BinaryCrossentropy
 from tensorflow.keras.layers import Conv2D
@@ -30,8 +30,7 @@ from sklearn.metrics import accuracy_score, recall_score, f1_score, classificati
 import keras
 
 ### Internal imports
-from src.datasets import image_preprocessing as ip
-from src.utils import utils_gradcam as ug
+from src.datasets import image_preprocessing
 ### Configuration file import
 
 ### Import des fichiers de configuration et des informations sur les logs
@@ -39,6 +38,39 @@ from src.config.run_config import init_paths,infolog
 from src.config.log_config import logger
 
 ## Fonctions
+
+# Sauvegarder les predictions
+def save_prediction(model_name,image_path,prediction,confiance,temps_prediction,date_prediction,prediction_logging_filepath):
+    ''' Mise à jour du fichier de prediction avec les informations recueillies'''
+    logger.debug("-------save_prediction(model_name={model_name},image_path={img_path},prediction={prediction},confiance={confiance},temps_prediction={temps_prediction},date_prediction={date_prediction},prediction_logging_filepath={prediction_logging_filepath})----")
+    # Créer un dictionnaire avec les informations
+    data = {
+        'Nom du modèle': model_name,
+        'Chemin de l\'image': image_path,
+        'Prédiction': prediction,
+        'Indice de confiance': confiance,
+        'Temps de prédiction':temps_prediction,
+        'Date de prédiction':date_prediction
+    }
+    file_exists = os.path.isfile(prediction_logging_filepath)
+    with open(prediction_logging_filepath, 'a' if file_exists else 'w', newline='') as f:
+        writer = csv.writer(f)
+        # Si le fichier n'existe pas, on ajoute l'entête
+        if not file_exists:
+            logger.debug(f"Fichier de logging n'existe pas")
+            logger.debug(f"Ecriture de l'entête {data.keys()}")
+            writer.writerow(data.keys())
+        else:
+            logger.debug("Le fichier de logging existe, stockage des résultats en fin de fichier")
+            logger.debug(f"Ecriture des résultats {data.values()}")
+        # Write the new data to the file
+        writer.writerow(data.values())
+         # Write the data rows
+        '''
+        for row in data:
+            logger.debug(f"")
+            writer.writerow(row)
+        '''
 
 ### FUNCTIONS
 ## Keras Models save and load
@@ -79,6 +111,45 @@ def save_model(model, save_path):
         raise
 
     return save_path
+
+def save_weights(model, save_path):
+    """
+    Saves a Keras model to the specified path.
+    
+    :param model: The model to save.
+    :param save_path: The file FULL path where to save the model.
+    :raises PermissionError: If there has been a write permision issue
+    :raises IOError: if there has been an I/O error
+    :raises Exception: If an unknown error occurs
+    """
+    logger.debug("--------------------save_model--------------------")
+    try: # Saving the model
+        # Extract the directory from the complete file path
+        directory = os.path.dirname(save_path)
+        
+        # Check if the directory already exists
+        if not os.path.exists(directory):
+            # Create the directory if it does not exist
+            os.makedirs(directory)
+        
+        # Save the model to the specified path
+        model.save_weights(save_path)
+        
+    except PermissionError:
+        # Exception if there is no permission to write in the directory
+        logger.error("Error: No permission to write to the specified directory.")
+        raise
+    except IOError as e:
+        # Handle general I/O errors
+        logger.error(f"An I/O error occurred: {e}")
+        raise
+    except Exception as e:
+        # Handle other possible exceptions
+        logger.error(f"An unexpected error occurred: {e}")
+        raise
+
+    return save_path
+
 
 ## Models loading. Names load_models to distinguish the function from the keras 'load_model' function
 def load_models(load_path):

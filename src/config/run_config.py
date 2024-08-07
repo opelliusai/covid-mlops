@@ -28,12 +28,14 @@ init_paths = {
     "keras_tuner_folder":"data/processed/keras_tuner",
     "raw_datasets_folder": "data/raw/datasets",
     "processed_datasets_folder": "data/processed/datasets", 
+    "prediction_logging_folder": "data/processed/predictions",
     "test_images":"data/raw/test_images", 
     "logs_folder": "logs",
     "docker_folder":"dockerfiles",
     "airflow_dags_pipelines":"dags",
     "docs":"docs",
-    "references":"references"
+    "references":"references",
+    "notebooks":"notebooks",
     }
 
 # Base de données utilisée, URL Kaggle qui sera chargée via l'API
@@ -43,11 +45,15 @@ dataset_info = {
     "dataset_name":"covid19-db",
 }
 
+eval_dataset_info = {
+    "eval_dataset_url":"ahmadalmahsiri/covid19-radiography-database",
+    "eval_dataset_name":"eval-covid19-db",
+}
+
 model_info = {
-    "selected_model_name":"covid19_test_arbo.h5",
+    "selected_model_name":"COVID19_Effnetb0_Model_1.1.h5",
     "model_name_prefix":"covid_model",
-    # Users 
-    
+    "prediction_logging_filename":"prediction_logging.csv",
     }
 
 api_info = {
@@ -59,5 +65,4 @@ api_info = {
 infolog = {
     "project_name":"Covid19_MLOps",
     "logfile_name": "covid19-mlops.log",
-    
 }

@@ -38,3 +38,6 @@ def generate_numeric_correspondance(labels):
     correspondance = {label: i for i, label in enumerate(unique_labels)}
     logger.debug(f"Correspondance {correspondance}")
     return correspondance
+
+def invert_dict(d):
+    return {v: k for k, v in d.items()}

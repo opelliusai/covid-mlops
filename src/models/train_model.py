@@ -22,6 +22,7 @@ from src.config.run_config import init_paths,infolog
 from src.models import build_model
 from src.datasets import image_preprocessing
 from src.utils import utils_data
+from src.utils import utils_models
 ### FUNCTIONS
 
 def train_model(model, ml_hp, X, y, full_run_folder, model_training_history_csv):
@@ -115,7 +116,7 @@ def train_model(model, ml_hp, X, y, full_run_folder, model_training_history_csv)
 
 def main():
     ml_hp={}
-    ml_hp['max_epochs']=22
+    ml_hp['max_epochs']=18
     ml_hp['num_trials']=5
     ## Paramètres additionels pour l'entrainement
     ml_hp["img_size"]=224
@@ -139,6 +140,10 @@ def main():
     final_model, metrics, history = train_model(model, ml_hp, X, labels_num, full_run_folder, model_training_history_csv)
     logger.debug(f"metrics {metrics}")
     logger.debug(f"history {history}")
-
+    version="1.1"
+    model_save_path_keras=os.path.join(init_paths["main_path"],init_paths["models_path"],f"COVID19_Effnetb0_Model_{version}.keras")
+    model_save_path_h5=os.path.join(init_paths["main_path"],init_paths["models_path"],f"COVID19_Effnetb0_Model_{version}.h5")
+    utils_models.save_model(final_model, model_save_path_keras)
+    utils_models.save_model(final_model, model_save_path_h5)
 if __name__ == "__main__":
     main()
