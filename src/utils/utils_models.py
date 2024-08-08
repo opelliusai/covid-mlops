@@ -9,9 +9,8 @@ Créé le 05/08/2024
 
 '''
 
-### External IMPORTS
+### IMPORTS
 import os
-# Data load and save
 from tensorflow.keras.models import load_model
 import pickle
 import json

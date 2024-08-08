@@ -24,6 +24,7 @@ init_paths = {
     "archive_folder":"data/archives",
     "models_path": "data/models",
     "temp_datasets_folder":"data/raw/datasets_temp",
+    "prediction_images_folder":"data/raw/prediction_images",
     "run_folder":"data/processed/mflow_runs",
     "keras_tuner_folder":"data/processed/keras_tuner",
     "raw_datasets_folder": "data/raw/datasets",
@@ -55,6 +56,15 @@ model_info = {
     "model_name_prefix":"covid_model",
     "prediction_logging_filename":"prediction_logging.csv",
     }
+
+user_api_info = {
+    "USER_API_URL":"http://127.0.0.1:8000",
+    "PREDICT_URL":"/predict"
+}
+
+admin_api_info = {
+    "ADMIN_API_URL":"http://127.0.0.1:8080",
+}
 
 api_info = {
     "users_path":".secrets/authorized_users.json"
